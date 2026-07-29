@@ -1,7 +1,10 @@
+const bcrypt = require("bcryptjs");
 const prisma = require("../prismaClient");
 const { sendOtpEmail } = require("../mailer");
 
 const OTP_EXPIRY_MINUTES = 5;
+const SALT_ROUNDS = 10;
+const MIN_PASSWORD_LENGTH = 6;
 
 // Basic email format validation
 function isValidEmail(email) {
@@ -13,14 +16,78 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// POST /send-otp
-// Body: { email }
-async function sendOtp(req, res) {
+// POST /signup
+// Body: { email, username, dob, password, confirmPassword }
+async function signUp(req, res) {
   try {
-    const { email } = req.body;
+    const { email, username, dob, password, confirmPassword } = req.body;
 
     if (!isValidEmail(email)) {
       return res.status(400).json({ success: false, message: "Please enter a valid email address." });
+    }
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ success: false, message: "Username is required." });
+    }
+
+    if (!dob) {
+      return res.status(400).json({ success: false, message: "Date of birth is required." });
+    }
+
+    const dobDate = new Date(dob);
+    if (isNaN(dobDate.getTime())) {
+      return res.status(400).json({ success: false, message: "Please enter a valid date of birth." });
+    }
+    if (dobDate > new Date()) {
+      return res.status(400).json({ success: false, message: "Date of birth cannot be in the future." });
+    }
+
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match." });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: "Email is already registered. Please log in instead." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    await prisma.user.create({
+      data: {
+        email,
+        username: username.trim(),
+        dob: dobDate,
+        password: hashedPassword,
+      },
+    });
+
+    return res.json({ success: true, message: "Successfully signed up." });
+  } catch (error) {
+    console.error("Error in signUp:", error);
+    return res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
+  }
+}
+
+// POST /send-otp
+// Body: { email, password }
+async function sendOtp(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Please enter a valid email address." });
+    }
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: "Password is required." });
     }
 
     // Check whether the email is registered
@@ -28,6 +95,12 @@ async function sendOtp(req, res) {
 
     if (!user) {
       return res.status(404).json({ success: false, message: "Email not registered." });
+    }
+
+    // Verify the password before issuing an OTP
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
+      return res.status(401).json({ success: false, message: "Incorrect password." });
     }
 
     const otp = generateOtp();
@@ -96,11 +169,11 @@ async function verifyOtp(req, res) {
       data: { verified: true },
     });
 
-    return res.json({ success: true, message: "Login successful." });
+    return res.json({ success: true, message: "Successfully logged in." });
   } catch (error) {
     console.error("Error in verifyOtp:", error);
     return res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
   }
 }
 
-module.exports = { sendOtp, verifyOtp };
+module.exports = { signUp, sendOtp, verifyOtp };

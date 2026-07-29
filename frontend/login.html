@@ -1,21 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Email OTP Authentication</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <div class="card">
     <h1>Login</h1>
     <p class="subtitle">Sign in with a one-time code sent to your email.</p>
 
-    <!-- Step 1: Email entry -->
-    <div id="email-step">
+    <!-- Step 0: Bot check gate -->
+    <div id="robot-check-step">
+      <label class="checkbox-row" for="not-robot-checkbox">
+        <input type="checkbox" id="not-robot-checkbox" />
+        <span>I'm not a robot</span>
+      </label>
+    </div>
+
+    <!-- Step 1: Email + Password + CAPTCHA together (hidden until the bot check is passed) -->
+    <div id="email-step" class="hidden">
       <label for="email">Email address</label>
       <input type="email" id="email" placeholder="you@example.com" />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Your password" />
+
+      <label>Security check</label>
+      <div class="captcha-box">
+        <canvas id="captcha-canvas" width="150" height="50"></canvas>
+        <button type="button" id="refresh-captcha-btn" class="secondary-btn" title="Get a new code">&#8635;</button>
+      </div>
+      <input type="text" id="captcha-input" placeholder="Enter the code shown above" autocomplete="off" />
+
       <button id="send-otp-btn">Send OTP</button>
     </div>
 
@@ -27,8 +48,13 @@
     </div>
 
     <p id="message" class="message"></p>
+
+    <p class="link-row">New here? <a href="signup.html">Sign up</a></p>
   </div>
+
+
 
   <script src="script.js"></script>
 </body>
+
 </html>

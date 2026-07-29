@@ -1,24 +1,29 @@
-// Simple seed script to add a test user, since this demo has no registration page.
-// Run with: node prisma/seed.js your-email@example.com
+// Optional CLI helper to create a test user directly, without using the Sign Up page.
+// Run with:
+//   node prisma/seed.js <email> <username> <YYYY-MM-DD> <password>
+// Example:
+//   node prisma/seed.js jane@example.com jane 1998-04-12 mypassword123
 
+const bcrypt = require("bcryptjs");
 const prisma = require("../prismaClient");
 
 async function main() {
-  const email = process.argv[2];
+  const [email, username, dob, password] = process.argv.slice(2);
 
-  if (!email) {
-    console.error("Please provide an email. Example:");
-    console.error("  node prisma/seed.js your-email@example.com");
+  if (!email || !username || !dob || !password) {
+    console.error("Usage: node prisma/seed.js <email> <username> <YYYY-MM-DD> <password>");
     process.exit(1);
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   const user = await prisma.user.upsert({
     where: { email },
-    update: {},
-    create: { email },
+    update: { username, dob: new Date(dob), password: hashedPassword },
+    create: { email, username, dob: new Date(dob), password: hashedPassword },
   });
 
-  console.log("User ready in database:", user);
+  console.log("User ready in database:", { id: user.id, email: user.email, username: user.username });
 }
 
 main()

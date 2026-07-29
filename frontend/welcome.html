@@ -10,7 +10,7 @@
 
   <div class="card">
     <h1>Welcome!</h1>
-    <p class="subtitle">Login Successful.</p>
+    <p class="subtitle" id="welcome-message">Login Successful.</p>
     <button id="logout-btn">Logout</button>
   </div>
 
@@ -20,9 +20,16 @@
       window.location.href = "login.html";
     }
 
+    // Show the message returned by the server (e.g. "Successfully logged in.")
+    const authMessage = sessionStorage.getItem("authMessage");
+    if (authMessage) {
+      document.getElementById("welcome-message").textContent = authMessage;
+    }
+
     document.getElementById("logout-btn").addEventListener("click", () => {
       sessionStorage.removeItem("loggedIn");
       sessionStorage.removeItem("userEmail");
+      sessionStorage.removeItem("authMessage");
       window.location.href = "login.html";
     });
   </script>

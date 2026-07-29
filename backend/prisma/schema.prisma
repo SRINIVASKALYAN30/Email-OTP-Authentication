@@ -1,10 +1,13 @@
 // Prisma schema for Email OTP Authentication demo
 
 datasource db {
-     provider  = "postgresql"
-     url       = env("DATABASE_URL")
-     directUrl = env("DIRECT_URL")
-   }
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl is only needed if you're connecting through Supabase's connection
+  // pooler (see README). If you're using a plain local/hosted Postgres, you can
+  // remove this line and the DIRECT_URL variable from your .env.
+  directUrl = env("DIRECT_URL")
+}
 
 generator client {
   provider = "prisma-client-js"
@@ -13,6 +16,9 @@ generator client {
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
+  username  String
+  dob       DateTime
+  password  String
   createdAt DateTime @default(now())
 
   otps      Otp[]
@@ -28,3 +34,4 @@ model Otp {
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
 }
+
